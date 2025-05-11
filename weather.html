@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #6dd5fa, #2980b9);
+      color: #fff;
+      text-align: center;
+      padding: 50px;
+      margin: 0;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 15px;
+      display: inline-block;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 500px;
+    }
+
+    input {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      width: 200px;
+      margin: 10px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      margin-left: 10px;
+      background-color: #ffffff;
+      color: #2980b9;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #f0f0f0;
+    }
+
+    #weather-result {
+      margin-top: 30px;
+    }
+    
+    #bookmarks-section {
+      margin-top: 40px;
+    }
+
+    #bookmarks-list button {
+      margin: 5px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      background: #fff;
+      color: #2980b9;
+      cursor: pointer;
+    }
+
+    #bookmarks-list button:hover {
+      background: #e0e0e0;
+    }
+
+    #logoutBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Media Query for Mobile Devices */
+    @media (max-width: 600px) {
+      body {
+        padding: 20px;
+      }
+
+      .container {
+        padding: 20px;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      input {
+        width: 100%;
+        margin: 10px 0;
+        padding: 12px;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        margin-left: 0;
+      }
+
+      #logoutBtn {
+        top: 10px;
+        right: 10px;
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+
+      #weather-result {
+        margin-top: 20px;
+      }
+
+      #bookmarks-section {
+        margin-top: 30px;
+      }
+
+      #bookmarks-list button {
+        padding: 6px 10px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Logout Button -->
+  <button id="logoutBtn">Logout</button>
+
+  <div class="container">
+    <h1>Weather Dashboard</h1>
+
+    <!-- City Input and Fetch Weather Button -->
+    <input type="text" id="city-input" placeholder="Enter city name" />
+    <button onclick="fetchWeather()">Get Weather</button>
+
+    <!-- Weather Result Section -->
+    <div id="weather-result"></div>
+
+    <!-- Bookmarked Cities Section -->
+    <div id="bookmarks-section">
+      <h3>Bookmarked Cities</h3>
+      <div id="bookmarks-list"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // --- Firebase Initialization ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQ9ksa4mlj75xoQJ2F5RLRkN9eGccTpmo",
+      authDomain: "weather-project-d7f8b.firebaseapp.com",
+      projectId: "weather-project-d7f8b",
+      storageBucket: "weather-project-d7f8b.appspot.com",
+      messagingSenderId: "368199199592",
+      appId: "1:297909586782:web:28e22e429fc16c224d5dcf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Redirect to login if not authenticated
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      }
+    });
+
+    // Logout functionality
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+        window.location.href = "login.html";
+      } catch (error) {
+        alert("Error logging out: " + error.message);
+      }
+    });
+
+    // --- Weather Functionality ---
+    const apiKey = '03b0553a8cff7eb41f9a27228ff529a2';
+
+    window.fetchWeather = async function(cityFromBookmark = null) {
+      const cityInput = document.getElementById('city-input');
+      const city = cityFromBookmark || cityInput.value.trim();
+      if (!city) return alert('Please enter a city name.');
+
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.cod !== 200) {
+          document.getElementById('weather-result').innerHTML = `<p>${data.message}</p>`;
+          return;
+        }
+
+        const { name } = data;
+        const { temp } = data.main;
+        const { description, icon } = data.weather[0];
+
+        document.getElementById('weather-result').innerHTML = `
+          <h2>${name}</h2>
+          <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="${description}" />
+          <p>${description}</p>
+          <p><strong>${temp}°C</strong></p>
+          <button onclick="bookmarkCity('${name}')">⭐ Bookmark</button>
+        `;
+      } catch (error) {
+        document.getElementById('weather-result').innerHTML = `<p>Failed to fetch weather data.</p>`;
+        console.error(error);
+      }
+    };
+
+    window.bookmarkCity = function(city) {
+      let bookmarks = JSON.parse(localStorage.getItem('weatherBookmarks')) || [];
+      if (!bookmarks.includes(city)) {
+        bookmarks.push(city);
+        localStorage.setItem('weatherBookmarks', JSON.stringify(bookmarks));
+        loadBookmarks();
+      } else {
+        alert(`${city} is already bookmarked.`);
+      }
+    };
+
+    function loadBookmarks() {
+      const list = document.getElementById('bookmarks-list');
+      const bookmarks = JSON.parse(localStorage.getItem('weatherBookmarks')) || [];
+
+      list.innerHTML = '';
+      bookmarks.forEach(city => {
+        const btn = document.createElement('button');
+        btn.textContent = `📍 ${city}`;
+        btn.onclick = () => fetchWeather(city);
+        list.appendChild(btn);
+      });
+    }
+
+    // Load bookmarks on startup
+    document.addEventListener('DOMContentLoaded', loadBookmarks);
+  </script>
+</body>
+</html>

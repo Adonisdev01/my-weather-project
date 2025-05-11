@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+    }
+
+    .card {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background: #1e3d59;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #4338CA;
+    }
+
+    #login-link {
+      display: block;
+      text-align: center;
+      margin-top: 1rem;
+      color: #4F46E5;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #login-link:hover {
+      color: #4338CA;
+    }
+
+    @media (max-width: 768px) {
+      .card {
+        padding: 1.5rem;
+        max-width: 90%;
+      }
+
+      h2 {
+        font-size: 1.2rem;
+      }
+
+      input, button {
+        padding: 0.65rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        max-width: 95%;
+      }
+
+      h2 {
+        font-size: 1rem;
+      }
+
+      input, button {
+        padding: 0.5rem;
+      }
+
+      #login-link {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Sign Up</h2>
+    <form id="signup-form">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <input type="password" id="confirm-password" placeholder="Confirm Password" required />
+      <input type="file" id="profileImage" accept="image/*" />
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <span id="login-link">Already have an account? Log in</span>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQ9ksa4mlj75xoQJ2F5RLRkN9eGccTpmo",
+      authDomain: "weather-project-d7f8b.firebaseapp.com",
+      projectId: "weather-project-d7f8b",
+      storageBucket: "weather-project-d7f8b.appspot.com",
+      messagingSenderId: "368199199592",
+      appId: "1:297909586782:web:28e22e429fc16c224d5dcf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const firestore = getFirestore();
+    const storage = getStorage();
+
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirm-password").value;
+      const profileImageFile = document.getElementById("profileImage").files[0];
+
+      // Check if the passwords match
+      if (password !== confirmPassword) {
+        alert("Passwords do not match.");
+        return;
+      }
+
+      try {
+        // Create the user
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Check if the email is already in use
+        if (userCredential?.user?.email === email) {
+          // Handle profile image upload if provided
+          let profileImageUrl = "";
+          if (profileImageFile) {
+            const profileImageRef = ref(storage, `profile_images/${user.uid}`);
+            await uploadBytes(profileImageRef, profileImageFile);
+            profileImageUrl = await getDownloadURL(profileImageRef);
+          }
+
+          // Save user data to Firestore
+          await setDoc(doc(firestore, "users", user.uid), {
+            username: username,
+            email: email,
+            profileImageUrl: profileImageUrl
+          });
+
+          // Send email verification (optional)
+          await sendEmailVerification(user);
+
+          // Redirect to login page after successful sign-up
+          window.location.href = "login.html";
+        } else {
+          alert("This email is already in use. Please use a different email address.");
+        }
+      } catch (error) {
+        if (error.code === "auth/email-already-in-use") {
+          alert("This email is already in use. Please try logging in or use a different email address.");
+        } else {
+          alert("Error during sign-up: " + error.message);
+        }
+      }
+    });
+
+    // Redirect to login page when the user clicks the login link
+    document.getElementById("login-link").addEventListener("click", () => {
+      window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>
