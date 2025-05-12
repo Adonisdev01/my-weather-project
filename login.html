@@ -127,6 +127,7 @@
         await setPersistence(auth, browserSessionPersistence);
         await signInWithEmailAndPassword(auth, email, password);
         window.location.href = "weather.html";
+        alert("Login successful");
       } catch (error) {
         console.error("Login error:", error);
         alert("Login failed: " + error.message);
